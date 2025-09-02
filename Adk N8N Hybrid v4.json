@@ -19,10 +19,16 @@
             {
               "name": "user_id",
               "value": "={{ $json.user_id }}"
+            },
+            {
+              "name": "session_id",
+              "value": "={{ $json.session_id }}"
             }
           ]
         },
-        "options": {}
+        "options": {
+          "timeout": 90000
+        }
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -65,7 +71,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// The new, simpler code. No more parsing!\n\n// Get the structured data directly from the webhook body.\nconst agentName = items[0].json.body.agent_name;\nconst message = items[0].json.body.message;\nconst userId = items[0].json.body.userId;\n\n// Prepare the clean output for the next node (HTTP Request).\nconst newOutput = {\n  agent_name: agentName,\n  message: message,\n  user_id: userId\n};\n\n// Replace the original data with our clean data.\nitems[0].json = newOutput;\n\n// Return the result for the next node.\nreturn items;"
+        "jsCode": "// The new, simpler code. No more parsing!\n\n// Get the structured data directly from the webhook body.\nconst agentName = items[0].json.body.agent_name;\nconst message = items[0].json.body.message;\nconst userId = items[0].json.body.userId;\nconst sessionId = items[0].json.body.session_id;\n\n// Prepare the clean output for the next node (HTTP Request).\nconst newOutput = {\n  agent_name: agentName,\n  message: message,\n  user_id: userId,\n  session_id: sessionId\n};\n\n// Replace the original data with our clean data.\nitems[0].json = newOutput;\n\n// Return the result for the next node.\nreturn items;"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -78,7 +84,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// This node's only job is to safely build the final JSON response.\n\n// Get the agent's response from the previous HTTP Request node.\nconst agentMessage = items[0].json.response;\n\n// Create a standard JavaScript object.\nconst responseObject = {\n  message: agentMessage\n};\n\n// Use JSON.stringify(). This is a rock-solid, standard JavaScript function\n// that correctly handles all special characters (newlines, quotes, etc.)\n// and converts our object into a perfect JSON string.\nconst finalJsonString = JSON.stringify(responseObject);\n\n// n8n expects the output to be an array of objects, with the data inside a 'json' key.\nreturn [{ json: { data: finalJsonString } }];"
+        "jsCode": "// This node passes the full, structured response from the agent wrapper.\n\n// Get the full JSON response from the previous HTTP Request node.\nconst agentResponse = items[0].json;\n\n// The wrapper already provides a clean JSON object like:\n// { \"response\": \"Hello...\", \"session_id\": \"session-123...\", ... }\n// We just need to wrap it correctly for the final output.\nconst responseObject = {\n  message: agentResponse.response,\n  session_id: agentResponse.session_id\n};\n\n// Use JSON.stringify() to handle special characters correctly.\nconst finalJsonString = JSON.stringify(responseObject);\n\n// Return the final data string.\nreturn [{ json: { data: finalJsonString } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -141,7 +147,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "832b778f-e771-46f8-bf8a-45c405f4363f",
+  "versionId": "1a6cfbfa-53db-4367-a653-f813df4b8b8b",
   "meta": {
     "instanceId": "b5c426e18ce27df549b664b38ac3fadaafdc4fb8e7cfee51188688bcb4972e07"
   },
